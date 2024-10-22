@@ -143,20 +143,33 @@ func (instance *Instance) parseMassDNSOutputFile(tmpFile string, store *store.St
 	// Determine if NDJSON parsing is required based on configuration
 	parseOption := parser.ParseOption(instance.options.NDJSON)
 
-	// at first we need the full structure in memory to elaborate it in parallell
-	err := parser.ParseFile(tmpFile, func(domain string, ip []string) error {
-		for _, ip := range ip {
-			// Check if ip exists in the store. If not,
-			// add the ip to the map and continue with the next ip.
-			if !store.Exists(ip) {
-				if err := store.New(ip, domain); err != nil {
-					return fmt.Errorf("could not create new record: %w", err)
+	// at first we need the full structure in memory to elaborate it in parallel
+	err := parser.ParseFile(tmpFile, func(domain string, ips []string) error {
+		if len(ips) > 0 {
+			for _, ip := range ips {
+				if !store.Exists(ip) {
+					if err := store.New(ip, domain); err != nil {
+						return fmt.Errorf("could not create new record: %w", err)
+					}
+					continue
 				}
-				continue
-			}
 
-			if err := store.Update(ip, domain); err != nil {
-				return fmt.Errorf("could not update record: %w", err)
+				if err := store.Update(ip, domain); err != nil {
+					return fmt.Errorf("could not update record: %w", err)
+				}
+			}
+		} else {
+			// If we don't have any IPs, it might be a CNAME record
+			// We'll store it with a special IP format
+			specialIP := "CNAME:" + domain
+			if !store.Exists(specialIP) {
+				if err := store.New(specialIP, domain); err != nil {
+					return fmt.Errorf("could not create new CNAME record: %w", err)
+				}
+			} else {
+				if err := store.Update(specialIP, domain); err != nil {
+					return fmt.Errorf("could not update CNAME record: %w", err)
+				}
 			}
 		}
 		return nil
@@ -308,7 +321,7 @@ func (instance *Instance) writeOutput(store *store.Store) error {
 				defer swg.Done()
 
 				if dnsResolver != nil {
-					if resp, err := dnsResolver.QueryOne(hostname); err != nil || len(resp.A) == 0 {
+					if resp, err := dnsResolver.QueryOne(hostname); err != nil || (len(resp.A) == 0 && len(resp.CNAME) == 0) {
 						gologger.Info().Msgf("not resolved with trusted resolver - skipping: %s", hostname)
 						return
 					} else {
