@@ -1,8 +1,8 @@
 package massdns
 
 import (
+	"github.com/ShlomieLiberow/shuffledns/pkg/wildcards"
 	"github.com/projectdiscovery/retryabledns"
-	"github.com/projectdiscovery/shuffledns/pkg/wildcards"
 )
 
 type Instance struct {
@@ -44,6 +44,8 @@ type Options struct {
 	WildcardOutputFile string
 	// MassDnsCmd supports massdns flags
 	MassDnsCmd string
+
+	NDJSON bool
 
 	OnResult func(*retryabledns.DNSData)
 }

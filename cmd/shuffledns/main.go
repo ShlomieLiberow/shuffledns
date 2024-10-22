@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/ShlomieLiberow/shuffledns/pkg/runner"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/runner"
 )
 
 func main() {

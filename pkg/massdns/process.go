@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ShlomieLiberow/shuffledns/pkg/parser"
+	"github.com/ShlomieLiberow/shuffledns/pkg/store"
+	"github.com/ShlomieLiberow/shuffledns/pkg/wildcards"
 	"github.com/projectdiscovery/dnsx/libs/dnsx"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/parser"
-	"github.com/projectdiscovery/shuffledns/pkg/store"
-	"github.com/projectdiscovery/shuffledns/pkg/wildcards"
 	folderutil "github.com/projectdiscovery/utils/folder"
 	stringsutil "github.com/projectdiscovery/utils/strings"
 	"github.com/remeh/sizedwaitgroup"
@@ -39,10 +39,11 @@ func (instance *Instance) RunWithContext(ctx context.Context) (stdout, stderr st
 	defer stderrFile.Close()
 
 	// Run the command on a temp file and wait for the output
-	args := []string{"-r", instance.options.ResolversFile, "-o", "Snl", "--retry", "REFUSED", "--retry", "SERVFAIL", "-t", "A", instance.options.InputFile, "-s", strconv.Itoa(instance.options.Threads)}
+	args := []string{"-r", instance.options.ResolversFile, "-o", "F", "--retry", "REFUSED", "--retry", "SERVFAIL", "-t", "A", instance.options.InputFile, "-s", strconv.Itoa(instance.options.Threads)}
 	if instance.options.MassDnsCmd != "" {
 		args = append(args, strings.Split(instance.options.MassDnsCmd, " ")...)
 	}
+	fmt.Println("Arguments for massdns:", args)
 	cmd := exec.CommandContext(ctx, instance.options.MassdnsPath, args...)
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
@@ -139,6 +140,9 @@ func (instance *Instance) Run(ctx context.Context) error {
 }
 
 func (instance *Instance) parseMassDNSOutputFile(tmpFile string, store *store.Store) error {
+	// Determine if NDJSON parsing is required based on configuration
+	parseOption := parser.ParseOption(instance.options.NDJSON)
+
 	// at first we need the full structure in memory to elaborate it in parallell
 	err := parser.ParseFile(tmpFile, func(domain string, ip []string) error {
 		for _, ip := range ip {
@@ -156,7 +160,7 @@ func (instance *Instance) parseMassDNSOutputFile(tmpFile string, store *store.St
 			}
 		}
 		return nil
-	})
+	}, parseOption)
 
 	if err != nil {
 		return fmt.Errorf("could not parse massdns output: %w", err)

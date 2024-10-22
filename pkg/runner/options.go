@@ -34,6 +34,7 @@ type Options struct {
 	MassDnsCmd         string              // Supports massdns flags(example -i)
 	DisableUpdateCheck bool                // DisableUpdateCheck disable automatic update check
 	Mode               string
+	NDJSON             bool // NDJSON specifies that the input should be parsed as NDJSON
 
 	OnResult func(*retryabledns.DNSData)
 }
@@ -59,6 +60,7 @@ func ParseOptions() *Options {
 		flagSet.StringVarP(&options.TrustedResolvers, "trusted-resolver", "tr", "", "File containing list of trusted resolvers"),
 		flagSet.StringVarP(&options.MassdnsRaw, "raw-input", "ri", "", "Validate raw full massdns output"),
 		flagSet.StringVar(&options.Mode, "mode", "", "Execution mode (bruteforce, resolve, filter)"),
+		flagSet.BoolVar(&options.NDJSON, "ndjson", false, "Parse input as NDJSON"),
 	)
 
 	flagSet.CreateGroup("rate-limit", "Rate-Limit",

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ShlomieLiberow/shuffledns/pkg/massdns"
 	"github.com/projectdiscovery/gologger"
-	"github.com/projectdiscovery/shuffledns/pkg/massdns"
 	fileutil "github.com/projectdiscovery/utils/file"
 	"github.com/rs/xid"
 )
@@ -185,6 +185,7 @@ func (r *Runner) runMassdns(inputFile string) {
 		WildcardOutputFile: r.options.WildcardOutputFile,
 		MassDnsCmd:         r.options.MassDnsCmd,
 		OnResult:           r.options.OnResult,
+		NDJSON:             r.options.NDJSON,
 	})
 	if err != nil {
 		gologger.Error().Msgf("Could not create massdns client: %s\n", err)
