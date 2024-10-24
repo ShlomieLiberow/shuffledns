@@ -175,23 +175,36 @@ func parseNDJSON(reader io.Reader, onResult OnResultFN) error {
 			return err // Handle or log error as appropriate
 		}
 
-		// Initialize variables to store the results
-		var domain string
+		domain := strings.TrimSuffix(record.Name, ".")
 		var ips []string
+		var hasCNAME bool
 
-		// Check if the record type is A and status is NOERROR
-		if record.Type == "A" && record.Status == "NOERROR" {
-			domain = strings.TrimSuffix(record.Name, ".")
-			for _, answer := range record.Data.Answers {
-				if answer.Type == "A" {
-					ips = append(ips, answer.Data)
+		// Check for A records and CNAME records in answers
+		for _, answer := range record.Data.Answers {
+			switch answer.Type {
+			case "A":
+				ips = append(ips, answer.Data)
+			case "CNAME":
+				hasCNAME = true
+				// For CNAME records with no A records, we'll pass an empty IP slice
+				if len(ips) == 0 {
+					if err := onResult(domain, []string{}); err != nil {
+						return err
+					}
 				}
 			}
-			// If we have IPs, call the callback with the domain and IPs
-			if len(ips) > 0 {
-				if err := onResult(domain, ips); err != nil {
-					return err
-				}
+		}
+
+		// If we found any A records, send them
+		if len(ips) > 0 {
+			if err := onResult(domain, ips); err != nil {
+				return err
+			}
+		} else if !hasCNAME && record.Status == "NOERROR" {
+			// If no A records and no CNAME, but status is NOERROR,
+			// still send the domain with empty IPs
+			if err := onResult(domain, []string{}); err != nil {
+				return err
 			}
 		}
 	}
