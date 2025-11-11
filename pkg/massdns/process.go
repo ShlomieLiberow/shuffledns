@@ -43,7 +43,7 @@ func (instance *Instance) RunWithContext(ctx context.Context) (stdout, stderr st
 	if instance.options.MassDnsCmd != "" {
 		args = append(args, strings.Split(instance.options.MassDnsCmd, " ")...)
 	}
-	fmt.Println("Arguments for massdns:", args)
+	// fmt.Println("Arguments for massdns:", args)
 	cmd := exec.CommandContext(ctx, instance.options.MassdnsPath, args...)
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
